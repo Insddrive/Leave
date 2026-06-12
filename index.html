@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SGPC ਛੁੱਟੀ ਪ੍ਰਬੰਧਕ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gurmukhi:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #000000;
+    --text-muted: #555555;
+    --border: #000000;
+    --earned: #28a745; /* Green for available */
+    --taken: #6c757d;  /* Grey for used */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans Gurmukhi', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 40px;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 2px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; }
+
+  /* Stats Bar */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    padding: 16px; border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    border: 1px solid var(--border); padding: 12px 8px; text-align: center;
+  }
+  .stat-num { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
+
+  /* Year Selector */
+  .year-selector { padding: 16px; display: flex; gap: 8px; overflow-x: auto; }
+  .year-btn { 
+    padding: 8px 16px; border: 1px solid var(--border); background: #fff; 
+    cursor: pointer; font-size: 14px; font-family: inherit;
+  }
+  .year-btn.active { background: #000; color: #fff; font-weight: bold; }
+
+  .section-title { padding: 0 16px 10px; font-size: 16px; font-weight: bold; }
+
+  /* Leaves List */
+  .leaves-list { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+  .leave-card {
+    border: 1px solid var(--border); padding: 12px; 
+    display: flex; align-items: center; gap: 12px;
+    background: #fff;
+  }
+
+  /* Status Colors */
+  .status-earned { border-left: 6px solid var(--earned); }
+  .status-taken { border-left: 6px solid var(--taken); opacity: 0.6; }
+  .status-upcoming { border: 1px dashed var(--border); opacity: 0.5; }
+
+  .leave-num { font-size: 16px; font-weight: bold; min-width: 25px; }
+  .leave-info { flex: 1; }
+  .leave-date-pa { font-size: 15px; font-weight: bold; }
+  .leave-day { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  
+  .leave-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* Buttons */
+  button { font-family: inherit; cursor: pointer; }
+  .btn-take { background: var(--earned); color: #fff; border: none; padding: 6px 12px; font-weight: bold; font-size: 13px; }
+  .btn-undo { background: #eee; border: 1px solid var(--border); padding: 6px 10px; font-size: 12px; }
+  .taken-badge { font-size: 13px; font-weight: bold; color: var(--text-muted); }
+  .wait-badge { font-size: 12px; color: var(--text-muted); }
+
+  /* Bottom Actions */
+  .bottom-actions { padding: 20px 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-action { 
+    flex: 1; padding: 12px; text-align: center; border: 2px solid var(--border); 
+    background: #fff; cursor: pointer; font-weight: bold; font-size: 14px; min-width: 45%;
+  }
+  .btn-delete { color: #d32f2f; border-color: #d32f2f; flex: 0 0 100%; }
+
+  /* Toast message */
+  .toast { 
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+    background: #000; color: #fff; padding: 10px 20px; font-size: 14px; 
+    display: none; white-space: nowrap;
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SGPC ਛੁੱਟੀ ਪ੍ਰਬੰਧਕ</h1>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-num" id="totalEarned">0</div>
+    <div class="stat-label">ਕੁੱਲ ਬਣੀਆਂ</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="totalTaken">0</div>
+    <div class="stat-label">ਵਰਤੀਆਂ</div>
+  </div>
+  <div class="stat-card" style="border-width: 2px;">
+    <div class="stat-num" id="currentBalance">0</div>
+    <div class="stat-label" style="font-weight: bold; color: #000;">ਮੌਜੂਦਾ ਬੈਲੇਂਸ</div>
+  </div>
+</div>
+
+<div id="yearSelector" class="year-selector"></div>
+
+<div class="section-title">ਛੁੱਟੀਆਂ ਦੀ ਸੂਚੀ</div>
+
+<div class="leaves-list" id="leavesList"></div>
+
+<div class="bottom-actions">
+  <button class="btn-action btn-delete" id="btnDeleteYear" onclick="deleteCurrentYear()" style="display:none;">ਇਹ ਸਾਲ ਡਿਲੀਟ ਕਰੋ</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'sgpc_leaves_2026_simple';
+const PA_MONTHS = ['ਜਨਵਰੀ','ਫਰਵਰੀ','ਮਾਰਚ','ਅਪ੍ਰੈਲ','ਮਈ','ਜੂਨ','ਜੁਲਾਈ','ਅਗਸਤ','ਸਤੰਬਰ','ਅਕਤੂਬਰ','ਨਵੰਬਰ','ਦਸੰਬਰ'];
+const PA_DAYS = ['ਐਤਵਾਰ','ਸੋਮਵਾਰ','ਮੰਗਲਵਾਰ','ਬੁੱਧਵਾਰ','ਵੀਰਵਾਰ','ਸ਼ੁੱਕਰਵਾਰ','ਸ਼ਨੀਵਾਰ'];
+
+const actualYear = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+let selectedYear = actualYear >= 2026 ? actualYear : 2026;
+
+function formatPunjabi(date) { return `${date.getDate()} ${PA_MONTHS[date.getMonth()]} ${date.getFullYear()}`; }
+function getDayName(date) { return PA_DAYS[date.getDay()]; }
+
+function generateLeaves() {
+  const leaves = [];
+  let id = 1;
+  for (let yr = 2026; yr <= 2035; yr++) {
+    let current = new Date(yr, 3, 18);
+    for (let i = 0; i < 20; i++) {
+      leaves.push({ id: id++, displayNum: i + 1, date: new Date(current), sgpcYear: yr });
+      current = new Date(current);
+      current.setDate(current.getDate() + 18);
+    }
+  }
+  return leaves;
+}
+const ALL_LEAVES = generateLeaves();
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } 
+  catch(e) { return {}; }
+}
+function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function getLeaveData(id) { return loadData()[id] || { taken: false }; }
+function setLeaveData(id, obj) {
+  const data = loadData();
+  data[id] = { ...getLeaveData(id), ...obj };
+  saveData(data);
+}
+
+function buildYearSelector() {
+  const data = loadData();
+  const deletedYears = data.deletedYears || [];
+  const years = [...new Set(ALL_LEAVES.map(l => l.sgpcYear))].filter(y => !deletedYears.includes(y));
+  const wrap = document.getElementById('yearSelector');
+  wrap.innerHTML = '';
+  
+  const visibleYears = years.filter(y => y <= Math.max(2026, actualYear + 1));
+  visibleYears.forEach(y => {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn' + (y === selectedYear ? ' active' : '');
+    btn.textContent = `${y}-${(y+1).toString().slice(-2)}`;
+    btn.onclick = () => { selectedYear = y; buildYearSelector(); render(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function render() {
+  const data = loadData();
+  const deletedYears = data.deletedYears || [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const ACTIVE_LEAVES = ALL_LEAVES.filter(l => !deletedYears.includes(l.sgpcYear));
+
+  const btnDelete = document.getElementById('btnDeleteYear');
+  if (selectedYear < actualYear && !deletedYears.includes(selectedYear)) {
+    btnDelete.style.display = 'block';
+  } else {
+    btnDelete.style.display = 'none';
+  }
+
+  const earnedLeavesAll = ACTIVE_LEAVES.filter(l => {
+      const d = new Date(l.date); d.setHours(0,0,0,0);
+      return d <= today;
+  });
+  const takenLeavesAll = ACTIVE_LEAVES.filter(l => data[l.id]?.taken);
+  const currentBalance = earnedLeavesAll.length - takenLeavesAll.length;
+
+  document.getElementById('totalEarned').textContent = earnedLeavesAll.length;
+  document.getElementById('totalTaken').textContent = takenLeavesAll.length;
+  document.getElementById('currentBalance').textContent = currentBalance;
+
+  const list = document.getElementById('leavesList');
+  const yearLeaves = ACTIVE_LEAVES.filter(l => l.sgpcYear === selectedYear);
+
+  list.innerHTML = yearLeaves.map(leave => {
+    const isTaken = data[leave.id]?.taken;
+    const d = new Date(leave.date); d.setHours(0,0,0,0);
+    const isEarned = d <= today; 
+
+    let status = isTaken ? 'taken' : (isEarned ? 'earned' : 'upcoming');
+    let actionHTML = '';
+    
+    if (isTaken) {
+      actionHTML = `<div class="taken-badge">ਵਰਤੀ</div><button class="btn-undo" onclick="undoLeave(${leave.id})">ਵਾਪਸ ਕਰੋ</button>`;
+    } else if (isEarned) {
+      actionHTML = `<button class="btn-take" onclick="takeLeave(${leave.id})">ਛੁੱਟੀ ਲਵੋ</button>`;
+    } else {
+      actionHTML = `<div class="wait-badge">ਅਜੇ ਬਣਨੀ ਹੈ</div>`;
+    }
+
+    return `
+      <div class="leave-card status-${status}">
+        <div class="leave-num">${leave.displayNum}</div>
+        <div class="leave-info">
+          <div class="leave-date-pa">${formatPunjabi(leave.date)}</div>
+          <div class="leave-day">${getDayName(leave.date)}</div>
+        </div>
+        <div class="leave-actions">${actionHTML}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function takeLeave(id) { setLeaveData(id, { taken: true }); render(); }
+function undoLeave(id) { setLeaveData(id, { taken: false }); render(); }
+
+function deleteCurrentYear() {
+  if (confirm(`ਕੀ ਤੁਸੀਂ ਸਾਲ ${selectedYear} ਦਾ ਡਾਟਾ ਮਿਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?`)) {
+    const data = loadData();
+    if (!data.deletedYears) data.deletedYears = [];
+    data.deletedYears.push(selectedYear);
+    saveData(data);
+    showToast(`ਸਾਲ ${selectedYear} ਡਿਲੀਟ ਕੀਤਾ ਗਿਆ`);
+    selectedYear = actualYear;
+    buildYearSelector();
+    render();
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+buildYearSelector();
+render();
+</script>
+</body>
+</html>
