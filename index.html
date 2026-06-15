@@ -44,6 +44,19 @@
   .stat-num { font-size: 22px; font-weight: 700; }
   .stat-label { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
 
+  /* Next Leave Banner */
+  .next-leave-banner {
+    background: #f8f9fa;
+    border: 1px solid var(--border);
+    border-left: 6px solid #17a2b8; /* Blue accent for info */
+    margin: 16px 16px 0;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    text-align: center;
+    display: none;
+  }
+
   /* Year Selector */
   .year-selector { padding: 16px; display: flex; gap: 8px; overflow-x: auto; }
   .year-btn { 
@@ -118,6 +131,8 @@
     <div class="stat-label" style="font-weight: bold; color: #000;">ਮੌਜੂਦਾ ਬੈਲੇਂਸ</div>
   </div>
 </div>
+
+<div id="nextLeaveBanner" class="next-leave-banner"></div>
 
 <div id="yearSelector" class="year-selector"></div>
 
@@ -201,6 +216,7 @@ function render() {
     btnDelete.style.display = 'none';
   }
 
+  // Calculate stats
   const earnedLeavesAll = ACTIVE_LEAVES.filter(l => {
       const d = new Date(l.date); d.setHours(0,0,0,0);
       return d <= today;
@@ -212,6 +228,23 @@ function render() {
   document.getElementById('totalTaken').textContent = takenLeavesAll.length;
   document.getElementById('currentBalance').textContent = currentBalance;
 
+  // Next leave calculation
+  const nextLeave = ACTIVE_LEAVES.find(l => {
+    const d = new Date(l.date); d.setHours(0,0,0,0);
+    return d > today;
+  });
+
+  const banner = document.getElementById('nextLeaveBanner');
+  if (nextLeave) {
+    const d = new Date(nextLeave.date); d.setHours(0,0,0,0);
+    const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+    banner.style.display = 'block';
+    banner.textContent = `ਤੁਹਾਡੀ ਅਗਲੀ ਛੁੱਟੀ ਬਣਨ ਵਿੱਚ ${diffDays} ਦਿਨ ਬਾਕੀ ਹਨ`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Render list
   const list = document.getElementById('leavesList');
   const yearLeaves = ACTIVE_LEAVES.filter(l => l.sgpcYear === selectedYear);
 
